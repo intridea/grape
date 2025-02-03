@@ -43,10 +43,10 @@ module Grape
         Rack::Response.new(Array.wrap(message), Rack::Utils.status_code(status), Grape::Util::Header.new.merge(headers))
       end
 
-      def format_message(message, backtrace, original_exception = nil)
+      def format_message(message, backtrace, original_exception = nil, status = nil)
         format = env[Grape::Env::API_FORMAT] || options[:format]
         formatter = Grape::ErrorFormatter.formatter_for(format, options[:error_formatters], options[:default_error_formatter])
-        return formatter.call(message, backtrace, options, env, original_exception) if formatter
+        return formatter.call(message, backtrace, options, env, original_exception, status) if formatter
 
         throw :error,
               status: 406,
@@ -72,7 +72,7 @@ module Grape
         end
         backtrace = error[:backtrace] || error[:original_exception]&.backtrace || []
         original_exception = error.is_a?(Exception) ? error : error[:original_exception] || nil
-        rack_response(status, headers, format_message(message, backtrace, original_exception))
+        rack_response(status, headers, format_message(message, backtrace, original_exception, status))
       end
 
       def default_rescue_handler(exception)
@@ -134,7 +134,7 @@ module Grape
         env[Grape::Env::API_ENDPOINT].status(status) # not error! inside route
         rack_response(
           status, headers.reverse_merge(Rack::CONTENT_TYPE => content_type),
-          format_message(message, backtrace, original_exception)
+          format_message(message, backtrace, original_exception, status)
         )
       end
 
