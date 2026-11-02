@@ -551,6 +551,25 @@ describe Grape::Validations do
       end
     end
 
+    context 'optional Array block in a required Hash sent as an Array' do
+      before do
+        subject.params do
+          requires :order, type: Hash do
+            optional :items, type: Array do
+              requires :sku
+            end
+          end
+        end
+        subject.post('/') { 'ok' }
+      end
+
+      it 'passes over an element that left the block out' do
+        post '/', { order: [{}, { items: { sku: 'A' } }] }.to_json, 'CONTENT_TYPE' => 'application/json'
+        expect(last_response.status).to eq(400)
+        expect(last_response.body).to eq('order is invalid, order[items] is invalid')
+      end
+    end
+
     context 'hash with a required param with validation' do
       before do
         subject.params do
