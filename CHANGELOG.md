@@ -13,6 +13,7 @@
 * [#3048](https://github.com/ruby-grape/grape/pull/3048): Update rubocop to 1.92.2 and tighten Metrics and line length limits - [@ericproulx](https://github.com/ericproulx).
 * [#3049](https://github.com/ruby-grape/grape/pull/3049): Clear the RuboCop todo and remove `.rubocop_todo.yml` - [@ericproulx](https://github.com/ericproulx).
 * [#3050](https://github.com/ruby-grape/grape/pull/3050): Remove the unused `ParamsScope#root?` and cover the placeholder skip in `validate_elements!` - [@ericproulx](https://github.com/ericproulx).
+* [#3051](https://github.com/ruby-grape/grape/pull/3051): Look up the validation error format once per response instead of once per message - [@ericproulx](https://github.com/ericproulx).
 * Your contribution here.
 
 ### 4.1.0 (2026-10-31)
