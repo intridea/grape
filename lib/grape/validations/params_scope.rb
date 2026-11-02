@@ -214,11 +214,6 @@ module Grape
         "[#{val}]" if val
       end
 
-      # @return [Boolean] whether or not this scope is the root-level scope
-      def root?
-        !@parent
-      end
-
       # Whether #should_validate? answers true for every request: this scope
       # and each of its ancestors is required and depends on nothing, so
       # neither the params nor the parent chain have anything to say.
