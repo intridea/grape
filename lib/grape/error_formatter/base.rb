@@ -21,6 +21,12 @@ module Grape
           format_structured_message(wrapped_message)
         end
 
+        # The media type of the errors this formatter renders. +nil+, the
+        # default, labels them with the request format's, so an error in a
+        # JSON API is +application/json+. A formatter whose body has a media
+        # type of its own names it here, as {ProblemJson} does.
+        def content_type = nil
+
         def present(message, env)
           # error! accepts a message hash with an optional :with key specifying the entity presenter.
           # Extract it here so the presenter can be resolved and the key is not serialized in the response.

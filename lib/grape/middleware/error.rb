@@ -153,6 +153,10 @@ module Grape
         Grape::ContentTypes.media_type(content_type).to_s.casecmp?('text/html')
       end
 
+      def format_message(error)
+        error_formatter.call(error:, env:, include_backtrace:, include_original_exception:)
+      end
+
       # The registry answers nil for a format nothing is registered for, and
       # the API's +default_error_formatter+ — +ErrorFormatter::Txt+ unless the
       # API set another — takes it from there, so this always has something
@@ -161,10 +165,18 @@ module Grape
       # call (+#respond+ has left its +catch+ by the time +error_response+ runs),
       # so it raised +UncaughtThrowError+ and the request answered with the
       # failsafe 500 rather than the 406 it named.
-      def format_message(error)
-        current_format = env[Grape::Env::API_FORMAT] || format
-        formatter = Grape::ErrorFormatter.formatter_for(current_format, error_formatters) || default_error_formatter
-        formatter.call(error:, env:, include_backtrace:, include_original_exception:)
+      def error_formatter
+        Grape::ErrorFormatter.formatter_for(env[Grape::Env::API_FORMAT] || format, error_formatters) || default_error_formatter
+      end
+
+      # The media type an error is labelled with: the one its formatter names,
+      # such as RFC 9457's +application/problem+json+, else the request
+      # format's. A Proc formatter names none.
+      def error_content_type
+        formatter = error_formatter
+        return content_type unless formatter.respond_to?(:content_type)
+
+        formatter.content_type || content_type
       end
 
       def find_handler(klass)
@@ -192,7 +204,7 @@ module Grape
 
       # The content type the error renders as, under any +headers+ it carries.
       def error_response_headers(headers)
-        content_type_header = { Rack::CONTENT_TYPE => content_type }
+        content_type_header = { Rack::CONTENT_TYPE => error_content_type }
         return content_type_header unless headers.is_a?(Hash)
 
         content_type_header.merge!(headers)
@@ -243,7 +255,7 @@ module Grape
       # {#format_message} directly rather than re-entering {#error_response}, so
       # this path cannot recurse.
       def render_failsafe_response
-        headers = { Rack::CONTENT_TYPE => content_type }
+        headers = { Rack::CONTENT_TYPE => error_content_type }
         rack_response(FAILSAFE_STATUS, headers, format_message(failsafe_payload(headers)))
       rescue StandardError
         rack_response(FAILSAFE_STATUS, { Rack::CONTENT_TYPE => FAILSAFE_CONTENT_TYPE }, FAILSAFE_MESSAGE)
@@ -421,7 +433,7 @@ module Grape
 
       def error!(message, status = default_status, headers = {}, backtrace = [], original_exception = nil)
         env[Grape::Env::API_ENDPOINT].status(status) # not error! inside route
-        merged_headers = { Rack::CONTENT_TYPE => content_type }.merge!(headers)
+        merged_headers = { Rack::CONTENT_TYPE => error_content_type }.merge!(headers)
         error = Grape::Exceptions::ErrorResponse.new(
           status:, message:, headers: merged_headers, backtrace:, original_exception:
         )

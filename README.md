@@ -2914,6 +2914,16 @@ class Twitter::API < Grape::API
 end
 ```
 
+An error is labelled with the content type of the request format. A formatter whose body has a media type of its own names it with `content_type`, and a `Content-Type` passed to `error!` still takes precedence:
+
+```ruby
+module CustomFormatter
+  def self.content_type
+    'application/vnd.error+json'
+  end
+end
+```
+
 You can rescue all exceptions with a code block. The `error!` wrapper automatically sets the default error code and content-type.
 
 ```ruby
@@ -2934,6 +2944,40 @@ class Twitter::API < Grape::API
   end
 end
 ```
+
+#### Problem details (RFC 9457)
+
+`Grape::ErrorFormatter::ProblemJson` renders errors as [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem details, labelled `application/problem+json`. Register it for the format whose errors it should render:
+
+```ruby
+class Twitter::API < Grape::API
+  format :json
+  error_formatter :json, Grape::ErrorFormatter::ProblemJson
+
+  get :credit do
+    error!('Your balance is 30, but that costs 50.', 403)
+  end
+end
+```
+
+```json
+{"type":"about:blank","title":"Forbidden","status":403,"detail":"Your balance is 30, but that costs 50."}
+```
+
+The message is the `detail`. The `type` is `about:blank` and the `title` the status phrase, which is how RFC 9457 describes a problem that is no more than its status. To describe a problem type of your own, pass a Hash: its members, a `type`, `title`, `detail`, `instance` or any extension, take the place of the defaults. `status` is always the status of the response.
+
+```ruby
+error!({ type: 'https://example.com/probs/out-of-credit', title: 'You do not have enough credit.',
+         detail: 'Your balance is 30, but that costs 50.', instance: '/account/12345/msgs/abc', balance: 30 }, 403)
+```
+
+A validation failure lists its parameters in an `errors` member, shaped as `Grape::Exceptions::ValidationErrors#as_json` shapes them, whether Grape answered it or a `rescue_from` handed it to `error!`:
+
+```json
+{"type":"about:blank","title":"Bad Request","status":400,"detail":"id is invalid","errors":[{"params":["id"],"messages":["is invalid"]}]}
+```
+
+`rescue_from ..., backtrace: true` and `original_exception: true` add `backtrace` and `original_exception` members.
 
 #### Re-raising from inside a `rescue_from` block
 

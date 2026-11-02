@@ -2,6 +2,7 @@
 
 #### Features
 
+* [#3052](https://github.com/ruby-grape/grape/pull/3052): Add `Grape::ErrorFormatter::ProblemJson` to answer errors as RFC 9457 problem details - [@ericproulx](https://github.com/ericproulx).
 * Your contribution here.
 
 #### Fixes
