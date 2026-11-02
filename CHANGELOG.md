@@ -2,6 +2,7 @@
 
 #### Features
 
+* [#3053](https://github.com/ruby-grape/grape/pull/3053): Run Grape behind Falcon in CI - [@ericproulx](https://github.com/ericproulx).
 * Your contribution here.
 
 #### Fixes
