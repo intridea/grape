@@ -35,17 +35,14 @@ module Grape
 
       private
 
+      # Every message shares one format and every error of a group its
+      # attribute names, so each is looked up once and only the interpolation,
+      # which is what I18n would end with anyway, runs per message.
       def translate_full_messages
-        messages = errors.flat_map do |attributes, errs|
-          errs.map do |error|
-            translate(
-              :format,
-              scope: 'grape.errors',
-              default: '%<attributes>s %<message>s',
-              attributes: translate_attributes(attributes),
-              message: error.message
-            )
-          end
+        template = translate(:format, scope: 'grape.errors', default: '%<attributes>s %<message>s')
+        messages = errors.flat_map do |keys, errs|
+          attributes = translate_attributes(keys)
+          errs.map { |error| ::I18n.interpolate(template, attributes:, message: error.message) }
         end
         messages.uniq!
         messages

@@ -66,6 +66,25 @@ describe Grape::Exceptions::ValidationErrors do
       end
     end
 
+    context 'with a translated format and attribute names' do
+      subject { described_class.new(exceptions: [id_missing, id_invalid, name_missing]).full_messages }
+
+      let(:id_missing) { Grape::Exceptions::Validation.new(params: ['id'], message: :presence) }
+      let(:id_invalid) { Grape::Exceptions::Validation.new(params: ['id'], message: 'is invalid') }
+      let(:name_missing) { Grape::Exceptions::Validation.new(params: ['name'], message: :presence) }
+
+      around do |example|
+        I18n.backend.store_translations(:en, grape: { errors: { format: '%<message>s (%<attributes>s)', attributes: { id: 'Identifier' } } })
+        example.run
+      ensure
+        I18n.reload!
+      end
+
+      it 'formats every message, each with its own attribute names' do
+        expect(subject).to eq(['is missing (Identifier)', 'is invalid (Identifier)', 'is missing (name)'])
+      end
+    end
+
     context 'when the caller changes the array it was given' do
       subject(:error) { described_class.new(exceptions: [Grape::Exceptions::Validation.new(params: ['id'], message: :presence)]) }
 
