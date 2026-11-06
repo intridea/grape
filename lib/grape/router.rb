@@ -153,13 +153,13 @@ module Grape
     # same patterns it walks, so a miss there is a miss here.
     def after_miss(input, method, env)
       allowed_methods_route = neighbour_route_for(input, method)
-      return process_route(allowed_methods_route, input, env, include_allow_header: true) if allowed_methods_route && method == Rack::OPTIONS
+      return process_allowed_methods_route(allowed_methods_route, input, env) if allowed_methods_route && method == Rack::OPTIONS
 
       star_route = star_route_for(input)
       # An ANY route that declined still matched, so no 405 follows it.
       return final_response(process_route(star_route, input, env)) if star_route
 
-      process_route(allowed_methods_route, input, env, include_allow_header: true) if allowed_methods_route
+      process_allowed_methods_route(allowed_methods_route, input, env) if allowed_methods_route
     end
 
     # A route for +method+ matched and declined this request. Its siblings -- the
@@ -209,7 +209,7 @@ module Grape
     # Routing args are rebuilt for every attempt: when a route cascades
     # (X-Cascade pass), the next candidate must not observe the previous
     # attempt's +route_info+ or path captures.
-    def process_route(route, input, env, match = nil, captures = nil, include_allow_header: false)
+    def process_route(route, input, env, match = nil, captures = nil)
       # The path captures are the hash: +route_info+ is written into them
       # rather than merged in from a second one. +captures+ names the groups of
       # +match+ that hold them: the router's union numbers them one way, a
@@ -217,8 +217,21 @@ module Grape
       routing_args = route.params_for(input, match, captures) || {}
       routing_args[:route_info] = route
       env[Grape::Env::GRAPE_ROUTING_ARGS] = routing_args
-      env[Grape::Env::GRAPE_ALLOWED_METHODS] = route.allow_header if include_allow_header
       route.call(env)
+    end
+
+    # {#process_route} for the route answering 405 and auto-OPTIONS, with the
+    # methods its path allows on the env for as long as it runs: the endpoint
+    # and the header versioner tell such a request apart by that key. It is
+    # taken off again once the route has answered, because the env outlives
+    # this router. Rack::Cascade passes a 405 on to its next app with the
+    # same env, and a key left behind there made a route that matched answer
+    # 405 too.
+    def process_allowed_methods_route(route, input, env)
+      env[Grape::Env::GRAPE_ALLOWED_METHODS] = route.allow_header
+      process_route(route, input, env)
+    ensure
+      env.delete(Grape::Env::GRAPE_ALLOWED_METHODS)
     end
 
     # {#process_route} for an entry of {#static_routes_for}. Its captures were

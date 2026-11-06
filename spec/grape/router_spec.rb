@@ -542,5 +542,20 @@ describe Grape::Router do
         expect(last_response.status).to eq(404)
       end
     end
+
+    # Rack::Cascade moves on from a 405 with the env the first app answered it
+    # on, so the next app must not find that answer's Allow methods in it.
+    context 'when behind a Rack::Cascade' do
+      let(:app) do
+        Rack::Cascade.new([Class.new(Grape::API) { get('/items') { 'index' } }, super()])
+      end
+
+      it 'lets the next app answer the method the first one does not allow' do
+        post '/items'
+
+        expect(last_response.status).to eq(201)
+        expect(last_response.body).to eq('"create"')
+      end
+    end
   end
 end
