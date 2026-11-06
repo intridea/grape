@@ -6,8 +6,9 @@ on:
 
 jobs:
   danger:
-    uses: numbata/danger-pr-comment/.github/workflows/danger-run.yml@v0.1.0
+    uses: numbata/danger-pr-comment/.github/workflows/danger-run.yml@v0.2.0
     secrets: inherit
     with:
       ruby-version: '3.4'
+      gemfile: gemfiles/danger.gemfile
       bundler-cache: true
