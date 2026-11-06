@@ -28,6 +28,9 @@ group :test do
   gem 'git', '< 6', require: false
   gem 'rack-contrib', require: false
   gem 'rack-test', '~> 2.1'
+  # ActiveSupport::XmlMini, Grape's XML backend without multi_xml, parses with
+  # REXML, a bundled gem rather than a default one.
+  gem 'rexml', require: false
   gem 'rspec', '~> 3.13'
   gem 'simplecov', '~> 1.1', require: false
 end
