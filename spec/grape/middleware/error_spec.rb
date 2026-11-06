@@ -87,8 +87,31 @@ describe Grape::Middleware::Error do
     end
   end
 
+  context 'with an error formatter that names a content type' do
+    let(:formatter) do
+      Module.new do
+        def self.content_type = 'application/vnd.error+json'
+        def self.call(error:, **) = { message: error.message }.to_json
+      end
+    end
+    let(:options) { { default_message: 'Aww, hamburgers.', format: :json, error_formatters: { json: formatter } } }
+
+    it 'labels the error with it' do
+      err_app.error = { status: 410, message: 'Awesome stuff.' }
+      get '/'
+      expect(last_response.content_type).to eq('application/vnd.error+json')
+      expect(last_response.body).to eq('{"message":"Awesome stuff."}')
+    end
+
+    it 'lets a Content-Type the error carries win' do
+      err_app.error = { status: 410, message: 'Awesome stuff.', headers: { 'Content-Type' => 'text/plain' } }
+      get '/'
+      expect(last_response.content_type).to eq('text/plain')
+    end
+  end
+
   context 'with http code' do
-    let(:options) {  { default_message: 'Aww, hamburgers.' } }
+    let(:options) { { default_message: 'Aww, hamburgers.' } }
 
     it 'adds the status code if wanted' do
       err_app.error = { message: { code: 200 } }
@@ -606,6 +629,16 @@ describe Grape::Middleware::Error do
       response = middleware.__send__(:error!, 'failure', 422)
       expect(response.status).to eq(422)
       expect(response.body).to eq(['failure'])
+    end
+
+    it 'labels the error with the content type its formatter names' do
+      env = Rack::MockRequest.env_for('/')
+      env[Grape::Env::API_ENDPOINT] = Spec::Support::EndpointFaker::FakerAPI.endpoints.first
+      middleware = described_class.new(->(_env) {}, format: :json, error_formatters: { json: Grape::ErrorFormatter::ProblemJson })
+      middleware.instance_variable_set(:@env, env)
+
+      response = middleware.__send__(:error!, 'failure', 422)
+      expect(response.headers[Rack::CONTENT_TYPE]).to eq('application/problem+json')
     end
   end
 
