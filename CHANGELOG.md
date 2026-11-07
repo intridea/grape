@@ -3,6 +3,7 @@
 #### Features
 
 * [#3052](https://github.com/ruby-grape/grape/pull/3052): Add `Grape::ErrorFormatter::ProblemJson` to answer errors as RFC 9457 problem details - [@ericproulx](https://github.com/ericproulx).
+* [#3054](https://github.com/ruby-grape/grape/pull/3054): Add `Grape.config.allow_undeclared_params`, answering 400 to undeclared params when `false`, the Grape 5.0 default - [@ericproulx](https://github.com/ericproulx).
 * Your contribution here.
 
 #### Fixes

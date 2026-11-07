@@ -3,6 +3,18 @@ Upgrading Grape
 
 ### Upgrading to >= 4.2.0
 
+#### Undeclared params can be rejected, and will be by default from Grape 5.0
+
+Set to `false`, `Grape.config.allow_undeclared_params` answers `400` to a request carrying a param its endpoint did not declare ([#3054](https://github.com/ruby-grape/grape/pull/3054)). It defaults to `true`, so nothing changes in 4.2.0, but Grape 5.0 makes `false` the default.
+
+To find out ahead of 5.0 what it would reject, set it to `false` in your test suite and declare what your endpoints read without declaring, such as an access token read by a `before` filter:
+
+```ruby
+Grape.config.allow_undeclared_params = false
+```
+
+To keep accepting undeclared params from 5.0, set it to `true`. See [Rejecting Undeclared Parameters](README.md#rejecting-undeclared-parameters).
+
 #### A request every route declines answers 404, however many routes declined
 
 A route declines a request by answering with `X-Cascade: pass`, as a version declared with `cascade: true` does for a version it does not serve. As the [README](README.md#header) documents, the router then answers its own `404` if no other route takes the request. It only did so when one route had declined: with two or more routes on the path, the last one's response came back instead, and so did that of an ANY route (since 4.0.0). So a request for an unknown version answered `404` from an API with one version and `406` from an API with several.
