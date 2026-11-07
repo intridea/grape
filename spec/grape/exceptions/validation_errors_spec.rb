@@ -74,6 +74,10 @@ describe Grape::Exceptions::ValidationErrors do
       let(:name_missing) { Grape::Exceptions::Validation.new(params: ['name'], message: :presence) }
 
       around do |example|
+        # Stored before en.yml loads, the format would be overwritten by its
+        # default. Not eager_load!: it leaves the backend reloading eagerly on
+        # every later I18n.reload!, under whatever locales a spec has set then.
+        I18n.backend.translations(do_init: true)
         I18n.backend.store_translations(:en, grape: { errors: { format: '%<message>s (%<attributes>s)', attributes: { id: 'Identifier' } } })
         example.run
       ensure
