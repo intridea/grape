@@ -524,8 +524,8 @@ end
 Grape.config.lint = true
 ```
 
-### Bug in Rack::ETag under Rack 3.X
-If you're using Rack 3.X and the `Rack::ETag` middleware (used by [Rails](https://guides.rubyonrails.org/rails_on_rack.html#inspecting-middleware-stack)), a [bug](https://github.com/rack/rack/pull/2324) related to linting has been fixed in [3.1.13](https://github.com/rack/rack/blob/v3.1.13/CHANGELOG.md#3113---2025-04-13) and [3.0.15](https://github.com/rack/rack/blob/v3.1.13/CHANGELOG.md#3015---2025-04-13) respectively.
+### Bug in Rack::ETag before Rack 3.1.13
+If you're using the `Rack::ETag` middleware (used by [Rails](https://guides.rubyonrails.org/rails_on_rack.html#inspecting-middleware-stack)), a [bug](https://github.com/rack/rack/pull/2324) related to linting has been fixed in [3.1.13](https://github.com/rack/rack/blob/v3.1.13/CHANGELOG.md#3113---2025-04-13).
 
 ## Describing Methods
 
