@@ -69,7 +69,7 @@ module Grape
       any.endpoint
     end
 
-    DEFAULT_RESPONSE_HEADERS = Grape::Util::Header.new.merge('X-Cascade' => 'pass').freeze
+    DEFAULT_RESPONSE_HEADERS = Rack::Headers.new.merge('X-Cascade' => 'pass').freeze
     DEFAULT_RESPONSE_BODY = ['404 Not Found'].freeze
 
     private
