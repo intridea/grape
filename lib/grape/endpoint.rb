@@ -113,6 +113,10 @@ module Grape
         source: self.class.block_to_unbound_method(block)
       )
       @endpoints = app.endpoints if app.respond_to?(:endpoints)
+      # The live settings of the scope the route is declared in. The copy in
+      # the State holds that scope's helpers as they were at this line; these
+      # also hold the ones declared further down, read once the API compiles.
+      @scope_setting = new_settings
     end
 
     # Update our settings from a given parent settings instance. Used when
@@ -353,7 +357,7 @@ module Grape
     # sets, which fits an 80-byte slot until a route block or a helper sets one
     # of its own; carrying the route-building state as well, it took 320. The
     # endpoint itself counts too when there are no helpers, both being a
-    # Grape::Endpoint, and it holds at most five.
+    # Grape::Endpoint, and it holds at most six.
     #
     # Helpers reach an endpoint by module inclusion, and +Object#dup+ does not
     # carry a singleton class over — so including them on the per-request copy
@@ -517,11 +521,52 @@ module Grape
       }
     end
 
+    # Every helper of the route's scope, wherever it was declared in it, and
+    # of the scopes around it.
     def build_helpers
-      helpers = inheritable_setting.helpers
+      helpers = @scope_setting.helpers
       return if helpers.empty?
 
+      composed = compose_helpers(helpers)
+      warn_on_helpers_redefined_below(helpers, composed)
+      composed
+    end
+
+    def compose_helpers(helpers)
       Module.new { helpers.each { |mod_to_include| include mod_to_include } }
+    end
+
+    # Remove in 5.0. Before 4.2.0 a route reached only the helpers declared
+    # above it in its scope, the ones its settings copy holds. Where one
+    # declared below redefines a method of those, the route now answers with
+    # the later definition, and nothing else would tell.
+    def warn_on_helpers_redefined_below(helpers, composed)
+      above = inheritable_setting.helpers
+      below = helpers - above
+      return if above.empty? || below.empty?
+
+      names = redefined_helper_names(below, compose_helpers(above), composed)
+      return if names.empty?
+
+      names.each do |name|
+        warn(
+          "Grape: helper `#{name}` is defined again below #{route_names} in the same scope, so since 4.2.0 " \
+          'that route answers with the later definition (see UPGRADING.md). ' \
+          'Rename one of them, or declare the route in its own namespace.'
+        )
+      end
+    end
+
+    def route_names
+      routes.map { |route| "#{route.request_method} #{route.origin}" }.uniq.join(', ')
+    end
+
+    # The methods of +below+ that change what +before+ answered.
+    def redefined_helper_names(below, before, composed)
+      below.flat_map { |mod| mod.instance_methods + mod.private_instance_methods }.uniq.select do |name|
+        (before.method_defined?(name) || before.private_method_defined?(name)) &&
+          before.instance_method(name).owner != composed.instance_method(name).owner
+      end
     end
 
     # A bare Rack app mounted with +mount+ is called directly (see +compile!+):
